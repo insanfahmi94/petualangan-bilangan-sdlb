@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Game pembelajaran matematika bilangan 1-10 untuk SDLB Kelas I Fase A">
+    <title>Petualangan Bilangan 1-10 — Game Matematika SDLB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔢</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ SPLASH ============ -->
+<section id="splash" class="screen active">
+    <div class="splash-inner">
+        <div class="splash-balls">
+            <span style="--d:0s">🔴</span><span style="--d:.1s">🟡</span><span style="--d:.2s">🟢</span><span style="--d:.3s">🔵</span><span style="--d:.4s">🟣</span>
+        </div>
+        <h1 class="splash-title">Petualangan Bilangan</h1>
+        <p class="splash-sub">1 — 10</p>
+        <p class="splash-tag">Amati • Sentuh • Hitung • Cocokkan • Coba Lagi</p>
+        <div class="splash-dots"><span>●</span><span>● ●</span><span>● ● ●</span><span>● ● ● ●</span><span>● ● ● ● ●</span></div>
+        <p class="splash-info">SDLB • Kelas I • Fase A • Matematika / Bilangan</p>
+        <button class="btn-start" onclick="App.start()">Mulai Bermain! 🎉</button>
+    </div>
+</section>
+
+<!-- ============ MENU ============ -->
+<section id="menu" class="screen">
+    <header class="menu-header">
+        <div class="mascot-mini">🦉</div>
+        <h1 class="menu-title">Petualangan Bilangan</h1>
+        <div class="star-counter"><span class="star-icon">⭐</span><span id="starCount">0</span></div>
+    </header>
+    <div class="menu-games" id="menuGames"></div>
+    <footer class="menu-footer">
+        <button class="btn-icon" id="soundToggle" onclick="App.toggleSound()">🔊</button>
+        <button class="btn-icon" onclick="App.resetProgress()">🔄</button>
+    </footer>
+</section>
+
+<!-- ============ GAME: DRAG & COUNT ============ -->
+<section id="game-dragCount" class="screen game-screen">
+    <div class="game-topbar">
+        <button class="btn-back" onclick="App.backToMenu()">‹ Menu</button>
+        <h2 class="game-title">🧺 Seret &amp; Hitung</h2>
+        <div class="round-info">Soal <span id="dc-round">1</span>/5</div>
+    </div>
+    <div class="game-instruction" id="dc-instruction"></div>
+    <div class="play-area" id="dc-play-area">
+        <div class="basket-zone">
+            <div class="basket-label">Keranjang</div>
+            <div class="basket" id="dc-basket" data-drop="basket">
+                <div class="basket-items" id="dc-basket-items"></div>
+            </div>
+            <div class="basket-counter">Isi: <span id="dc-count">0</span> / <span id="dc-target">0</span></div>
+        </div>
+        <div class="object-pool" id="dc-pool"></div>
+    </div>
+    <div class="game-controls">
+        <button class="btn-action" onclick="DragCountGame.reset()">🔄 Ulang</button>
+        <button class="btn-action btn-check" onclick="DragCountGame.check()">✅ Cek Jawaban</button>
+    </div>
+    <div class="game-feedback" id="dc-feedback"></div>
+</section>
+
+<!-- ============ GAME: MATCH NUMBER ============ -->
+<section id="game-matchNumber" class="screen game-screen">
+    <div class="game-topbar">
+        <button class="btn-back" onclick="App.backToMenu()">‹ Menu</button>
+        <h2 class="game-title">🔢 Cocokkan Jumlah</h2>
+        <div class="round-info">Soal <span id="mn-round">1</span>/5</div>
+    </div>
+    <div class="game-instruction">Seret angka ke kelompok benda yang sesuai!</div>
+    <div class="match-area" id="mn-match-area"></div>
+    <div class="number-bank-label">Pilih angka:</div>
+    <div class="number-bank" id="mn-number-bank"></div>
+    <div class="game-feedback" id="mn-feedback"></div>
+</section>
+
+<!-- ============ GAME: NUMBER TRAIN ============ -->
+<section id="game-numberTrain" class="screen game-screen">
+    <div class="game-topbar">
+        <button class="btn-back" onclick="App.backToMenu()">‹ Menu</button>
+        <h2 class="game-title">🚂 Kereta Angka</h2>
+        <div class="round-info">Susun 1–10</div>
+    </div>
+    <div class="game-instruction">Seret angka ke gerbong yang tepat — urutkan dari kecil ke besar!</div>
+    <div class="train-scroll">
+        <div class="train-container">
+            <div class="train-engine">🚂</div>
+            <div class="train-cars" id="nt-cars"></div>
+        </div>
+    </div>
+    <div class="bank-label">Angka tersedia:</div>
+    <div class="number-cards" id="nt-cards"></div>
+    <div class="game-controls">
+        <button class="btn-action" onclick="NumberTrainGame.shuffle()">🔄 Acak Lagi</button>
+        <button class="btn-action btn-check" onclick="NumberTrainGame.check()">✅ Cek Kereta</button>
+    </div>
+    <div class="game-feedback" id="nt-feedback"></div>
+</section>
+
+<!-- ============ GAME: ADDITION ============ -->
+<section id="game-addition" class="screen game-screen">
+    <div class="game-topbar">
+        <button class="btn-back" onclick="App.backToMenu()">‹ Menu</button>
+        <h2 class="game-title">➕ Gabung &amp; Hitung</h2>
+        <div class="round-info">Soal <span id="ad-round">1</span>/5</div>
+    </div>
+    <div class="game-instruction">Hitung semua benda, lalu pilih jawabannya!</div>
+    <div class="addition-area" id="ad-area"></div>
+    <div class="answer-choices" id="ad-choices"></div>
+    <div class="game-feedback" id="ad-feedback"></div>
+</section>
+
+<!-- ============ GAME: TRACING ============ -->
+<section id="game-tracing" class="screen game-screen">
+    <div class="game-topbar">
+        <button class="btn-back" onclick="App.backToMenu()">‹ Menu</button>
+        <h2 class="game-title">✏️ Jejak Angka</h2>
+    </div>
+    <div class="game-instruction">Telusuri angka dengan jari atau kursor — ikuti titik-titiknya!</div>
+    <div class="tracing-selector" id="tr-selector"></div>
+    <div class="tracing-canvas-wrap">
+        <canvas id="tr-canvas" width="600" height="600"></canvas>
+        <div class="tracing-hint" id="tr-hint">Pilih angka di atas untuk mulai</div>
+    </div>
+    <div class="game-controls">
+        <button class="btn-action" onclick="TracingGame.clear()">🧹 Hapus</button>
+        <button class="btn-action btn-check" onclick="TracingGame.save()">⭐ Simpan Karya</button>
+    </div>
+    <div class="game-feedback" id="tr-feedback"></div>
+</section>
+
+<!-- ============ INFO MODAL ============ -->
+<div id="infoModal" class="modal-overlay">
+    <div class="modal">
+        <button class="modal-close" onclick="App.closeInfo()">✖</button>
+        <h2>📖 Cara Bermain</h2>
+        <div class="info-content">
+            <div class="info-item"><span class="info-emoji">🧺</span><div><h3>Seret &amp; Hitung</h3><p>Lihat angka di atas, seret benda satu per satu ke keranjang sampai jumlahnya pas!</p></div></div>
+            <div class="info-item"><span class="info-emoji">🔢</span><div><h3>Cocokkan Jumlah</h3><p>Hitung benda pada setiap kelompok, lalu seret angka yang tepat ke kelompok tersebut.</p></div></div>
+            <div class="info-item"><span class="info-emoji">🚂</span><div><h3>Kereta Angka</h3><p>Susun angka 1 sampai 10 berurutan di gerbong kereta. Mulai dari yang terkecil!</p></div></div>
+            <div class="info-item"><span class="info-emoji">➕</span><div><h3>Gabung &amp; Hitung</h3><p>Lihat dua kelompok benda. Gabungkan dan hitung semuanya. Pilih jawaban yang benar!</p></div></div>
+            <div class="info-item"><span class="info-emoji">✏️</span><div><h3>Jejak Angka</h3><p>Pilih angka, lalu telusuri titik-titiknya dengan jari atau kursor untuk belajar menulis angka.</p></div></div>
+            <div class="info-tip"><p>🌟 Tips: Tidak perlu terburu-buru! Coba lagi jika belum tepat. Setiap usaha mendapat bintang ⭐</p></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ CELEBRATION ============ -->
+<div id="celebration" class="celebration-overlay">
+    <div class="celebration-content">
+        <div class="celebration-emoji" id="cele-emoji">🎉</div>
+        <h2 id="cele-title">Hebat!</h2>
+        <p id="cele-message">Kamu berhasil!</p>
+        <div class="celebration-stars" id="cele-stars"></div>
+        <button class="btn-action btn-check" onclick="App.closeCelebration()">Lanjut! 👍</button>
+    </div>
+    <div class="confetti" id="confetti"></div>
+</div>
+
+<!-- ============ RESET MODAL ============ -->
+<div id="resetModal" class="modal-overlay">
+    <div class="modal modal-small">
+        <h2>🔄 Ulang Progres?</h2>
+        <p>Semua bintang akan dihapus. Yakin?</p>
+        <div class="modal-buttons">
+            <button class="btn-action" onclick="App.cancelReset()">Batal</button>
+            <button class="btn-action btn-danger" onclick="App.confirmReset()">Ya, Ulang</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/twemoji.min.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/dragdrop.js"></script>
+<script src="js/games.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
