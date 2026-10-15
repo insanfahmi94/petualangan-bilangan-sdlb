@@ -41,7 +41,7 @@ img.emoji{display:inline-block;width:1em;height:1em;margin:0 .05em;vertical-alig
 #splash{align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)}
 .splash-inner{padding:var(--sp-6);max-width:600px;width:100%;overflow-y:auto}
 .splash-balls{font-size:2.2rem;margin-bottom:var(--sp-5)}
-.splash-balls span{display:inline-block;animation:bounce 1.5s infinite ease-in-out;animation-delay:var(--d)}
+.splash-balls span{display:inline-block;will-change:transform;animation:bounce 1.5s infinite ease-in-out;animation-delay:var(--d)}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
 .splash-title{font-size:clamp(1.6rem,5vw,3rem);color:#fff;font-weight:800;text-shadow:3px 3px 0 rgba(0,0,0,.18);margin-bottom:var(--sp-1)}
 .splash-sub{font-size:clamp(1.2rem,4vw,2rem);color:var(--yellow);font-weight:700;text-shadow:2px 2px 0 rgba(0,0,0,.12);margin-bottom:var(--sp-3)}
@@ -172,7 +172,7 @@ img.emoji{display:inline-block;width:1em;height:1em;margin:0 .05em;vertical-alig
 .basket.wrong-flash{animation:wrongFlash .6s ease}
 @keyframes wrongFlash{0%,100%{background:rgba(255,159,67,.06)}50%{background:rgba(255,118,117,.3);border-color:var(--error)}}
 .basket-items{display:flex;flex-wrap:wrap;gap:var(--sp-1);justify-content:center;align-content:center;width:100%;height:100%}
-.basket-items .obj-item{font-size:clamp(1.6rem,4vw,2rem);animation:dropIn .3s ease}
+.basket-items .obj-item{touch-action:none;font-size:clamp(1.6rem,4vw,2rem);animation:dropIn .3s ease}
 @keyframes dropIn{0%{transform:translateY(-20px) scale(.5);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
 .basket-counter{font-size:1rem;font-weight:700;color:var(--dark);background:var(--white);padding:var(--sp-1) var(--sp-4);border-radius:var(--r-pill);box-shadow:0 2px 6px var(--shadow)}
 .basket-counter .target-met{color:var(--success)}
@@ -224,7 +224,7 @@ img.emoji{display:inline-block;width:1em;height:1em;margin:0 .05em;vertical-alig
     border-radius:var(--r);box-shadow:0 -2px 6px var(--shadow);
     margin:0 var(--sp-3) var(--sp-2);flex-shrink:0;
 }
-.num-card{
+.num-card{touch-action:none;-webkit-touch-callout:none;
     width:50px;height:50px;
     background:linear-gradient(135deg,var(--yellow),var(--orange));
     color:var(--white);border-radius:var(--r-sm);
@@ -345,11 +345,11 @@ img.emoji{display:inline-block;width:1em;height:1em;margin:0 .05em;vertical-alig
 .celebration-stars .star-earned{animation:starPop .5s ease;display:inline-block}
 @keyframes starPop{0%{transform:scale(0) rotate(0)}100%{transform:scale(1) rotate(360deg)}}
 .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.confetti-piece{position:absolute;width:10px;height:10px;top:-20px;animation:confettiFall linear forwards}
+.confetti-piece{position:absolute;will-change:transform;width:10px;height:10px;top:-20px;animation:confettiFall linear forwards}
 @keyframes confettiFall{to{transform:translateY(105vh) rotate(720deg)}}
 
 /* ===== Drag clone ===== */
-.drag-clone{position:fixed;pointer-events:none;z-index:9999;opacity:.9;transform:scale(1.2);filter:drop-shadow(0 5px 8px rgba(0,0,0,.2))}
+.drag-clone{position:fixed;will-change:transform;pointer-events:none;z-index:9999;opacity:.9;transform:scale(1.2);filter:drop-shadow(0 5px 8px rgba(0,0,0,.2))}
 
 /* ===== RESPONSIVE — Mobile ===== */
 @media(max-width:600px){
