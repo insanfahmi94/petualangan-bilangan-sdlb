@@ -41,14 +41,18 @@ const App = {
         info.innerHTML=`<div class="card-icon">📖</div><h2>Cara Bermain</h2><p>Petunjuk dan tips belajar</p><div class="card-badge">Panduan</div><div class="card-stars"></div>`;
         info.addEventListener('click',()=>this.showInfo());
         c.appendChild(info);
-        // Parse emoji
-        if(window.twemoji) twemoji.parse(c,TWEMOJI_CFG);
+        // Parse emoji (wrapped in try-catch for safety)
+        try{if(window.twemoji) twemoji.parse(c,TWEMOJI_CFG);}catch(e){}
         this.updateStars();
     },
 
     start(){ Sound.init(); Sound.pop(); this.showScreen('menu'); },
 
     showScreen(id){
+        // CRITICAL: Clear all pending game timers when switching screens
+        // prevents stale setTimeout callbacks from skipping rounds or
+        // showing celebrations on wrong screens
+        if(typeof GameTimers!=='undefined') GameTimers.clear();
         document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
         const el=document.getElementById(id)||document.getElementById('game-'+id);
         if(el){el.classList.add('active');this.screen=id;}
@@ -58,7 +62,7 @@ const App = {
         Sound.init(); Sound.click();
         this.showScreen('game-'+id);
         const init={dragCount:()=>DragCountGame.init(),matchNumber:()=>MatchNumberGame.init(),numberTrain:()=>NumberTrainGame.init(),addition:()=>AdditionGame.init(),tracing:()=>TracingGame.init()};
-        if(init[id]) setTimeout(()=>init[id](),120);
+        if(init[id]) GameTimers.set(()=>init[id](),120);
     },
 
     backToMenu(){ Sound.click(); this.showScreen('menu'); this.updateStars(); },
@@ -78,7 +82,7 @@ const App = {
             let s=''; for(let i=0;i<filled;i++)s+='⭐';
             if(c>max) el.innerHTML=s+` <span style="font-size:.75rem;color:#999">(+${c-max})</span>`;
             else el.textContent=s||'';
-            if(window.twemoji) twemoji.parse(el,TWEMOJI_CFG);
+            try{if(window.twemoji) twemoji.parse(el,TWEMOJI_CFG);}catch(e){}
         });
     },
 
@@ -92,11 +96,11 @@ const App = {
     toggleSound(){
         this.soundOn=Sound.toggle();
         document.getElementById('soundToggle').textContent=this.soundOn?'🔊':'🔇';
-        if(window.twemoji) twemoji.parse(document.getElementById('soundToggle'),TWEMOJI_CFG);
+        try{if(window.twemoji) twemoji.parse(document.getElementById('soundToggle'),TWEMOJI_CFG);}catch(e){}
     },
 
     showInfo(){ Sound.click(); document.getElementById('infoModal').classList.add('active');
-        if(window.twemoji) twemoji.parse(document.getElementById('infoModal'),TWEMOJI_CFG);
+        try{if(window.twemoji) twemoji.parse(document.getElementById('infoModal'),TWEMOJI_CFG);}catch(e){}
     },
     closeInfo(){ document.getElementById('infoModal').classList.remove('active'); },
 
@@ -109,7 +113,7 @@ const App = {
         document.getElementById('cele-emoji').textContent=pick(emojis);
         const ov=document.getElementById('celebration');
         ov.classList.add('active');
-        if(window.twemoji) twemoji.parse(ov,TWEMOJI_CFG);
+        try{if(window.twemoji) twemoji.parse(ov,TWEMOJI_CFG);}catch(e){}
         Sound.celebrate(); this.confetti();
     },
 
@@ -134,6 +138,18 @@ const App = {
 
 window.addEventListener('DOMContentLoaded',()=>{
     App.init();
-    // Parse splash emoji
-    if(window.twemoji) twemoji.parse(document.getElementById('splash'),TWEMOJI_CFG);
+    // Parse splash emoji (wrapped in try-catch for safety)
+    try{if(window.twemoji) twemoji.parse(document.getElementById('splash'),TWEMOJI_CFG);}catch(e){}
+});
+
+// Global error handler — prevents silent failures on mobile where console is hidden
+window.addEventListener('error',function(e){
+    console.warn('Game error:',e.message);
+    // Prevent uncaught errors from breaking the UI
+    return true;
+});
+// Catch unhandled promise rejections (e.g., AudioContext.resume())
+window.addEventListener('unhandledrejection',function(e){
+    console.warn('Unhandled promise:',e.reason);
+    e.preventDefault();
 });

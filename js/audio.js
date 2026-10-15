@@ -15,23 +15,27 @@ const Sound = {
             }
         }
         if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
+            try { this.ctx.resume().catch(()=>{}); } catch(e) {}
         }
     },
 
     // Play a simple tone
     tone(freq, duration, type = 'sine', volume = 0.15) {
         if (!this.enabled || !this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = type;
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(volume, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + duration);
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+            // Disconnect for cleanup (prevents memory leaks in Safari)
+            osc.onended = function(){ try{osc.disconnect();gain.disconnect();}catch(e){} };
+        } catch(e) { /* AudioContext may be closed after tab suspension */ }
     },
 
     // Play a sequence of tones
@@ -100,18 +104,21 @@ const Sound = {
     // Train whistle
     whistle() {
         if (!this.enabled || !this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(400, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.15);
-        osc.frequency.linearRampToValueAtTime(400, this.ctx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.4);
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.15);
+            osc.frequency.linearRampToValueAtTime(400, this.ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.4);
+            osc.onended = function(){ try{osc.disconnect();gain.disconnect();}catch(e){} };
+        } catch(e) {}
     },
 
     // Pop sound

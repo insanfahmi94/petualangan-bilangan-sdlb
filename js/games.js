@@ -26,10 +26,19 @@ const TWEMOJI_CFG = {
     ext: '.svg', size: 'svg', className: 'emoji'
 };
 
-/** Convert emoji text to Twemoji images within an element */
+/** Convert emoji text to Twemoji images within an element (wrapped in try-catch) */
 function renderEmoji(el) {
-    if (window.twemoji) twemoji.parse(el, TWEMOJI_CFG);
+    try { if (window.twemoji) twemoji.parse(el, TWEMOJI_CFG); }
+    catch(e) { /* twemoji parse error — emoji shown as text fallback */ }
 }
+
+/** Centralized timer management — prevents stale setTimeout callbacks
+ *  from firing after user navigates away from a game (critical bug fix) */
+const GameTimers = {
+    _timers: [],
+    set(fn, ms) { const id = setTimeout(fn, ms); this._timers.push(id); return id; },
+    clear() { this._timers.forEach(id => clearTimeout(id)); this._timers = []; }
+};
 /** Create a span with emoji image */
 function emojiSpan(emoji) {
     const s = document.createElement('span');
@@ -45,7 +54,13 @@ function emojiSpan(emoji) {
 const DragCountGame = {
     round:0, max:5, target:0, obj:null, items:[],
 
-    init(){ this.round=0; this.next(); },
+    init(){
+        // Clear any stale timers from previous game session
+        GameTimers.clear();
+        // Ensure basket is a proper drop zone with touch-action:none (Android fix)
+        DragDrop.makeDropZone(document.getElementById('dc-basket'));
+        this.round=0; this.next();
+    },
 
     next(){
         this.round++;
@@ -127,15 +142,15 @@ const DragCountGame = {
         const fb=document.getElementById('dc-feedback');
         if(cnt===this.target){
             basket.classList.add('correct-flash');
-            setTimeout(()=>basket.classList.remove('correct-flash'),600);
-            fb.textContent=`🎉 Hebat! ${cnt} ${this.obj.n} sudah benar!`;
+            GameTimers.set(()=>basket.classList.remove('correct-flash'),600);
+            fb.textContent=`🎉 Hebat! ${cnt} ${this.obj?this.obj.n:'benda'} sudah benar!`;
             fb.className='game-feedback feedback-correct';
             Sound.correct();
             App.addStar('dragCount');
-            setTimeout(()=>this.next(),1800);
+            GameTimers.set(()=>this.next(),1800);
         } else {
             basket.classList.add('wrong-flash');
-            setTimeout(()=>basket.classList.remove('wrong-flash'),600);
+            GameTimers.set(()=>basket.classList.remove('wrong-flash'),600);
             fb.textContent=cnt<this.target
                 ?`🤔 Kurang ${this.target-cnt} lagi. Seret lebih banyak!`
                 :`🤔 Kelebihan ${cnt-this.target}. Klik benda untuk keluarkan!`;
@@ -159,7 +174,7 @@ const DragCountGame = {
 const MatchNumberGame = {
     round:0, max:5, rows:[],
 
-    init(){ this.round=0; this.next(); },
+    init(){ GameTimers.clear(); this.round=0; this.next(); },
 
     next(){
         this.round++;
@@ -198,7 +213,7 @@ const MatchNumberGame = {
         shuffle(nums).forEach(n=>{
             const c=document.createElement('div');
             c.className='num-card'; c.textContent=n; c.dataset.number=n;
-            c.dataset.id='mn-'+n+'-'+Math.random().toString(36).substr(2,5);
+            c.dataset.id='mn-'+n+'-'+Math.random().toString(36).slice(2,7);
             DragDrop.makeDraggable(c,{
                 onDrop:(t,el)=>{
                     if(t.classList.contains('match-slot')&&!t.classList.contains('filled'))
@@ -210,27 +225,28 @@ const MatchNumberGame = {
     },
 
     place(slot,card){
-        const num=parseInt(card.dataset.number);
-        const exp=parseInt(slot.dataset.exp);
-        const idx=parseInt(slot.dataset.idx);
+        const num=parseInt(card.dataset.number)||0;
+        const exp=parseInt(slot.dataset.exp)||0;
+        const idx=parseInt(slot.dataset.idx)||0;
+        if(!card.dataset.number||isNaN(num)||isNaN(exp)){return;} // Guard against missing data
         slot.textContent=num; slot.classList.add('filled'); card.classList.add('placed');
         const fb=document.getElementById('mn-feedback');
 
         if(num===exp){
             slot.classList.add('correct');
-            this.rows[idx].done=true;
+            if(this.rows[idx]) this.rows[idx].done=true;
             Sound.correct(); App.addStar('matchNumber');
             if(this.rows.every(r=>r.done)){
                 fb.textContent='🎉 Semua benar! Hebat sekali!';
                 fb.className='game-feedback feedback-correct';
-                setTimeout(()=>this.next(),1800);
+                GameTimers.set(()=>this.next(),1800);
             }
         } else {
             slot.classList.add('wrong');
             Sound.wrong();
             fb.textContent='😅 Coba hitung lagi. Apakah jumlahnya '+num+'?';
             fb.className='game-feedback feedback-wrong';
-            setTimeout(()=>{
+            GameTimers.set(()=>{
                 slot.classList.remove('wrong','filled'); slot.textContent='';
                 card.classList.remove('placed');
                 fb.textContent=''; fb.className='game-feedback';
@@ -247,6 +263,7 @@ const NumberTrainGame = {
     filled:{}, empty:[], preFilled:{},
 
     init(){
+        GameTimers.clear();
         this.filled={}; this.preFilled={};
         const hints=[]; const nh=ri(2,3);
         while(hints.length<nh){const p=ri(1,10);if(!hints.includes(p))hints.push(p);}
@@ -283,8 +300,8 @@ const NumberTrainGame = {
             DragDrop.makeDraggable(c,{
                 onDrop:(t,el)=>{
                     if(t.classList.contains('car-slot')&&!t.classList.contains('filled')){
-                        const p=parseInt(t.dataset.pos);
-                        if(!this.filled[p]) this.placeNum(p,t,el);
+                        const p=parseInt(t.dataset.pos)||0;
+                        if(p&&!this.filled[p]) this.placeNum(p,t,el);
                     }
                 }
             });
@@ -296,7 +313,7 @@ const NumberTrainGame = {
         slot.textContent=card.dataset.number;
         slot.classList.add('filled');
         card.classList.add('placed');
-        this.filled[pos]=parseInt(card.dataset.number);
+        this.filled[pos]=parseInt(card.dataset.number)||0;
         Sound.drop();
     },
 
@@ -315,7 +332,7 @@ const NumberTrainGame = {
             fb.className='game-feedback feedback-correct';
             Sound.celebrate(); Sound.whistle();
             App.addStar('numberTrain'); App.addStar('numberTrain');
-            setTimeout(()=>App.celebrate('Choo choo! 🚂','Kereta angka siap berangkat!',2),800);
+            GameTimers.set(()=>App.celebrate('Choo choo! 🚂','Kereta angka siap berangkat!',2),800);
         } else {
             fb.textContent=`🤔 Ada ${this.empty.length-correct} gerbong belum tepat. Coba lagi!`;
             fb.className='game-feedback feedback-wrong'; Sound.wrong();
@@ -338,7 +355,7 @@ const AdditionGame = {
     problems:[{a:1,b:1},{a:1,b:2},{a:2,b:2},{a:3,b:2},{a:4,b:1}],
     cur:null, answered:false,
 
-    init(){ this.round=0; this.answered=false; this.next(); },
+    init(){ GameTimers.clear(); this.round=0; this.answered=false; this.next(); },
 
     next(){
         this.round++;
@@ -399,12 +416,12 @@ const AdditionGame = {
             fb.className='game-feedback feedback-correct';
             Sound.correct(); App.addStar('addition');
             document.querySelectorAll('#ad-choices .answer-btn').forEach(b=>b.style.pointerEvents='none');
-            setTimeout(()=>this.next(),1800);
+            GameTimers.set(()=>this.next(),1800);
         } else {
             btn.classList.add('wrong');
             fb.textContent='😅 Coba hitung lagi. Gabungkan semua benda lalu hitung!';
             fb.className='game-feedback feedback-wrong'; Sound.wrong();
-            setTimeout(()=>{btn.classList.remove('wrong');this.answered=false;fb.textContent='';fb.className='game-feedback';},1500);
+            GameTimers.set(()=>{btn.classList.remove('wrong');this.answered=false;fb.textContent='';fb.className='game-feedback';},1500);
         }
     }
 };
@@ -415,13 +432,15 @@ const AdditionGame = {
 // ================================================================
 const TracingGame = {
     canvas:null, ctx:null, drawing:false, hasDrawn:false,
-    curNum:null, lx:0, ly:0, _setup:false,
+    curNum:null, lx:0, ly:0, _setup:false, _cssW:300, _cssH:300,
 
     init(){
+        GameTimers.clear();
         this.canvas=document.getElementById('tr-canvas');
         this.ctx=this.canvas.getContext('2d');
+        this._resizeCanvas();
         this.curNum=null; this.hasDrawn=false;
-        const sel=document.getElementById('tr-selector'); sel.innerHTML='';
+        const sel=document.getElementById('tr-selector'); if(sel)sel.innerHTML='';
         for(let i=1;i<=10;i++){
             const b=document.createElement('button');
             b.className='tracing-btn'; b.textContent=i;
@@ -429,60 +448,98 @@ const TracingGame = {
             sel.appendChild(b);
         }
         this.clearCanvas();
-        document.getElementById('tr-hint').style.display='block';
-        const fb=document.getElementById('tr-feedback'); fb.textContent=''; fb.className='game-feedback';
+        const hint=document.getElementById('tr-hint'); if(hint)hint.style.display='block';
+        const fb=document.getElementById('tr-feedback'); if(fb){fb.textContent='';fb.className='game-feedback';}
         this.setupDrawing();
+    },
+
+    /** Scale canvas for high-DPI screens (prevents blurry rendering on 3x phones) */
+    _resizeCanvas(){
+        if(!this.canvas||!this.ctx)return;
+        const dpr=window.devicePixelRatio||1;
+        const rect=this.canvas.getBoundingClientRect();
+        const w=rect.width||300, h=rect.height||300;
+        this.canvas.width=Math.round(w*dpr);
+        this.canvas.height=Math.round(h*dpr);
+        this.ctx.setTransform(1,0,0,1,0,0);
+        this.ctx.scale(dpr,dpr);
+        this._cssW=w; this._cssH=h;
     },
 
     setupDrawing(){
         if(this._setup) return; this._setup=true;
-        const start=e=>{if(!this.curNum)return;e.preventDefault();this.drawing=true;const p=this.pos(e);this.lx=p.x;this.ly=p.y;document.getElementById('tr-hint').style.display='none';};
-        const draw=e=>{if(!this.drawing)return;e.preventDefault();const p=this.pos(e);
-            this.ctx.strokeStyle='#FF6B6B';this.ctx.lineWidth=22;this.ctx.lineCap='round';this.ctx.lineJoin='round';
+        const start=e=>{
+            if(!this.curNum)return;
+            e.preventDefault();
+            this.drawing=true;
+            if(typeof this.canvas.setPointerCapture==='function'){
+                try{this.canvas.setPointerCapture(e.pointerId)}catch(err){}
+            }
+            const p=this.pos(e);this.lx=p.x;this.ly=p.y;
+            const hint=document.getElementById('tr-hint'); if(hint)hint.style.display='none';
+        };
+        const draw=e=>{
+            if(!this.drawing)return;
+            e.preventDefault();const p=this.pos(e);
+            const lw=Math.max(8,this._cssW*0.037);
+            this.ctx.strokeStyle='#FF6B6B';this.ctx.lineWidth=lw;this.ctx.lineCap='round';this.ctx.lineJoin='round';
             this.ctx.beginPath();this.ctx.moveTo(this.lx,this.ly);this.ctx.lineTo(p.x,p.y);this.ctx.stroke();
-            this.ctx.strokeStyle='rgba(255,159,67,.25)';this.ctx.lineWidth=14;
+            this.ctx.strokeStyle='rgba(255,159,67,.25)';this.ctx.lineWidth=lw*0.6;
             this.ctx.beginPath();this.ctx.moveTo(this.lx,this.ly);this.ctx.lineTo(p.x,p.y);this.ctx.stroke();
             this.lx=p.x;this.ly=p.y;this.hasDrawn=true;
         };
-        const end=()=>{if(this.drawing){this.drawing=false;if(this.hasDrawn)Sound.pop();}};
-        this.canvas.addEventListener('pointerdown',start);
-        this.canvas.addEventListener('pointermove',draw);
-        this.canvas.addEventListener('pointerup',end);
-        this.canvas.addEventListener('pointerleave',end);
+        const end=e=>{
+            if(this.drawing){
+                this.drawing=false;
+                if(this.hasDrawn)Sound.pop();
+                if(e&&e.pointerId!==undefined&&typeof this.canvas.releasePointerCapture==='function'){
+                    try{this.canvas.releasePointerCapture(e.pointerId)}catch(err){}
+                }
+            }
+        };
+        this.canvas.addEventListener('pointerdown',start,{passive:false});
+        this.canvas.addEventListener('pointermove',draw,{passive:false});
+        this.canvas.addEventListener('pointerup',end,{passive:false});
+        this.canvas.addEventListener('pointercancel',end,{passive:false});
     },
 
+    /** Returns pointer position in CSS pixels (ctx is pre-scaled by DPR) */
     pos(e){
         const r=this.canvas.getBoundingClientRect();
-        const sx=this.canvas.width/r.width, sy=this.canvas.height/r.height;
-        return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
+        return{x:(e.clientX-r.left),y:(e.clientY-r.top)};
     },
 
     select(num,btn){
         this.curNum=num; this.hasDrawn=false;
         document.querySelectorAll('.tracing-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
+        this._resizeCanvas(); // Re-scale in case viewport changed
         this.clearCanvas(); this.drawGuide(num);
-        document.getElementById('tr-hint').style.display='none';
+        const hint=document.getElementById('tr-hint'); if(hint)hint.style.display='none';
         Sound.click();
     },
 
     clearCanvas(){
+        if(!this.ctx)return;
         this.ctx.fillStyle='#fff';
-        this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+        this.ctx.fillRect(0,0,this._cssW,this._cssH);
         this.hasDrawn=false;
         if(this.curNum) this.drawGuide(this.curNum);
-        else document.getElementById('tr-hint').style.display='block';
+        else {const h=document.getElementById('tr-hint');if(h)h.style.display='block';}
     },
 
     drawGuide(num){
-        const ctx=this.ctx; const cx=this.canvas.width/2; const cy=this.canvas.height/2;
+        if(!this.ctx)return;
+        const ctx=this.ctx; const cx=this._cssW/2; const cy=this._cssH/2;
+        const guideSize=Math.round(this._cssW*0.55);
+        const hintSize=Math.max(14,Math.round(this._cssW*0.055));
         ctx.save();
-        ctx.font='320px Arial,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.font=guideSize+'px Arial,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
         ctx.fillStyle='rgba(200,200,200,.15)'; ctx.fillText(num.toString(),cx,cy);
         ctx.strokeStyle='rgba(180,180,180,.45)'; ctx.lineWidth=3; ctx.setLineDash([8,8]);
         ctx.strokeText(num.toString(),cx,cy); ctx.setLineDash([]);
-        ctx.font='22px Arial'; ctx.fillStyle='rgba(155,114,207,.35)';
-        ctx.fillText('Telusuri mengikuti bentuk angka',cx,cy+200);
+        ctx.font=hintSize+'px Arial'; ctx.fillStyle='rgba(155,114,207,.35)';
+        ctx.fillText('Telusuri mengikuti bentuk angka',cx,cy+this._cssH*0.33);
         ctx.restore();
     },
 
